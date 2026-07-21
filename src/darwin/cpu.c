@@ -54,6 +54,10 @@ int cpu_init(void)
 	return 0;
 }
 
+void cpu_shutdown(void)
+{
+}
+
 static int calc_usage(processor_cpu_load_info_t cur, processor_cpu_load_info_t prev)
 {
 	uint64_t total = 0, used = 0;

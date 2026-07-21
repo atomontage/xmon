@@ -24,9 +24,12 @@ static unsigned long sppinfo_size;
 static PERF_DATA_BLOCK *perfbuf;
 static int perfbuf_size;
 
+static HKEY perfstats_key;
+
 
 static int init_ntquery(void);
 static int init_perfdata(void);
+static int init_perfstats(void);
 
 
 int cpu_init(void)
@@ -50,16 +53,42 @@ int cpu_init(void)
 
 	/* Try NtQuerySystemInformation, should be available on all NT versions */
 	if(init_ntquery() != -1) {
+		printf("using NT query\n");
 		return 0;
 	}
 
 	/* Try querying the performance counters block */
 	if(init_perfdata() != -1) {
+		printf("using perfdata\n");
+		return 0;
+	}
+
+	/* Try the perfstats registry keys */
+	if(init_perfstats() != -1) {
+		printf("using perfstats\n");
 		return 0;
 	}
 
 	/* we found no supported CPU stat gathering method */
 	return -1;
+}
+
+void cpu_shutdown(void)
+{
+	HKEY key;
+	DWORD val, type, size;
+
+	if(perfstats_key) {
+		RegCloseKey(perfstats_key);
+		perfstats_key = 0;
+
+		if(RegOpenKeyEx(HKEY_DYN_DATA, "PerfStats\\StopStat", 0, KEY_ALL_ACCESS,
+					&key) != 0) {
+			size = sizeof val;
+			RegQueryValueEx(key, "KERNEL\\CPUUsage", 0, &type, (unsigned char*)&val, &size);
+			RegCloseKey(key);
+		}
+	}
 }
 
 static int init_ntquery(void)
@@ -101,6 +130,33 @@ static int init_ntquery(void)
 		prev[i] = sppinfo[i];
 	}
 
+	return 0;
+}
+
+static int init_perfstats(void)
+{
+	HKEY key;
+	DWORD val, type, size;
+
+	if(RegOpenKeyEx(HKEY_DYN_DATA, "PerfStats\\StartStat", 0, KEY_ALL_ACCESS, &key) != 0) {
+		return -1;
+	}
+	size = sizeof val;
+	if(RegQueryValueEx(key, "KERNEL\\CPUUsage", 0, &type, (unsigned char*)&val, &size) != 0) {
+		fprintf(stderr, "start query failed\n");
+	}
+	RegCloseKey(key);
+
+	if(RegOpenKeyEx(HKEY_DYN_DATA, "PerfStats\\StatData", 0, KEY_ALL_ACCESS, &key) != 0) {
+		fprintf(stderr, "failed to open StatData key\n");
+		if(RegOpenKeyEx(HKEY_DYN_DATA, "PerfStats\\StopStat", 0, KEY_ALL_ACCESS, &key) != 0) {
+			RegCloseKey(key);
+		}
+		return -1;
+	}
+
+	perfstats_key = key;
+	smon.num_cpus = 1;
 	return 0;
 }
 
@@ -157,5 +213,14 @@ void cpu_update(void)
 		}
 
 		smon.single = allsum ? 128 - (unsigned int)((allidle << 7) / allsum) : 0;
+
+	} else if(perfstats_key) {
+		DWORD val, size, type;
+
+		size = sizeof val;
+		if(RegQueryValueEx(perfstats_key, "KERNEL\\CPUUsage", 0, &type,
+					(unsigned char*)&val, &size) == 0) {
+			smon.single = smon.cpu[0] = val * 128 / 100;
+		}
 	}
 }

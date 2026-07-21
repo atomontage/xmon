@@ -87,6 +87,10 @@ fail:
 	return -1;
 }
 
+void cpu_shutdown(void)
+{
+}
+
 void cpu_update(void)
 {
 	int i, nextupd;

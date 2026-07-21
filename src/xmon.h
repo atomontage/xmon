@@ -46,6 +46,7 @@ void layout(void);
 void draw_window(unsigned int dirty_override);
 
 int cpu_init(void);
+void cpu_shutdown(void);
 int mem_init(void);
 int load_init(void);
 int net_init(void);

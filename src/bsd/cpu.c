@@ -51,6 +51,10 @@ int cpu_init(void)
 	return 0;
 }
 
+void cpu_shutdown(void)
+{
+}
+
 void cpu_update(void)
 {
 	int i, j, nextst = curst ^ 1;

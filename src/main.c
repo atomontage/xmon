@@ -174,6 +174,7 @@ int main(int argc, char **argv)
 		}
 	}
 
+	cpu_shutdown();
 	shutdown_disp();
 	return 0;
 }
