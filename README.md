@@ -121,7 +121,5 @@ and Windows NT 4.0 with some caveats. Might also work on NT 3.1, but hasn't been
 tested yet.
 
 #### issues
-  - currently CPU usage collection is implemented with `NtQuerySystemInformation`
-    and so it only works on NT-based windows.
   - currently the network interface statistics module, uses the "IP Helper API",
     which is available on windows 98 and windows NT 4.0 SP4 or newer.
