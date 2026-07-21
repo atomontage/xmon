@@ -22,8 +22,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "options.h"
 
 static struct rect rect;
-static unsigned int rx_acc, tx_acc;
-static unsigned int rx_rate, tx_rate;
+static unsigned long rx_acc, tx_acc;
+static unsigned long rx_rate, tx_rate;
 static unsigned int plot_max;
 static long last_upd;
 static unsigned int plot_width, plot_height;
