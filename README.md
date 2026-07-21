@@ -110,10 +110,6 @@ is opened. See `load_init` in `src/irix/load.c`.
 On IRIX xmon can't compute traffic in bytes. Only packet counters are
 available. So all displayed numbers are packets or packets / sec.
 
-### MacOS X
-
-Currently the only modules implemented on MacOS X are CPU and memory usage.
-
 ### Windows
 
 Xmon should be able to run on every version of windows starting from windows 95,
