@@ -6,7 +6,7 @@ sys = $(shell uname -s | sed 's/IRIX.*/IRIX/' | sed 's/MINGW.*/MINGW/')
 src_Linux = $(wildcard src/linux/*.c) $(wildcard src/x11/*.c)
 src_IRIX = $(wildcard src/irix/*.c) $(wildcard src/x11/*.c)
 src_FreeBSD = $(wildcard src/bsd/*.c) $(wildcard src/x11/*.c)
-src_Darwin = $(wildcard src/darwin/*.c) $(wildcard src/x11/*.c)
+src_Darwin = $(wildcard src/darwin/*.c) src/bsd/load.c $(wildcard src/x11/*.c)
 src_MINGW = $(wildcard src/win32/*.c)
 
 # -- platform flags --
