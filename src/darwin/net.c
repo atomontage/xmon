@@ -115,6 +115,7 @@ static int fetch_net(unsigned long *rx_out, unsigned long *tx_out)
 
 	if(sysctl(mib, 6, buf, &len, NULL, 0) < 0) {
 		perror("sysctl(NET_RT_IFLIST2)");
+		free(buf);
 		return -1;
 	}
 
@@ -132,6 +133,8 @@ static int fetch_net(unsigned long *rx_out, unsigned long *tx_out)
 
 	*rx_out = rx;
 	*tx_out = tx;
+	free(buf);
+
 	return 0;
 }
 
