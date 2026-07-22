@@ -35,6 +35,11 @@ static int fetch_net(unsigned long *rx_out, unsigned long *tx_out);
 static unsigned long prev_rx, prev_tx;
 static unsigned int ifidx;
 
+/* To reduce number of allocations in the hot path, this buffer is allocated once and
+kept around. When needed, realloc is called to grow the allocation. */
+static unsigned char *iflist_buf;
+static size_t iflist_buf_len;
+
 int net_init(void)
 {
 	if(opt.net.ifname) {
@@ -92,8 +97,8 @@ static int fetch_net_single(int ifidx, unsigned long *rx_out, unsigned long *tx_
 static int fetch_net(unsigned long *rx_out, unsigned long *tx_out)
 {
 	int mib[6];
-	size_t len;
-	unsigned char *buf, *msg;
+	size_t buf_len;
+	unsigned char *msg;
 	unsigned long rx = 0, tx = 0;
 
 	mib[0] = CTL_NET;
@@ -103,24 +108,26 @@ static int fetch_net(unsigned long *rx_out, unsigned long *tx_out)
 	mib[4] = NET_RT_IFLIST2;
 	mib[5] = 0;
 
-	if(sysctl(mib, 6, NULL, &len, NULL, 0) < 0) {
+	if(sysctl(mib, 6, NULL, &buf_len, NULL, 0) < 0) {
 		perror("sysctl(NET_RT_IFLIST2, NULL)");
-		return -1;
+		goto err;
 	}
 
-	if(!(buf = calloc(1, len))) {
-		fprintf(stderr, "failed to allocate interface list buffer\n");
-		return -1;
+	if(iflist_buf == NULL || buf_len > iflist_buf_len)  {
+		if(!(iflist_buf = reallocf(iflist_buf, buf_len))) {
+			fprintf(stderr, "failed to allocate interface list buffer\n");
+			goto err;
+		}
+		iflist_buf_len = buf_len;
 	}
 
-	if(sysctl(mib, 6, buf, &len, NULL, 0) < 0) {
+	if(sysctl(mib, 6, iflist_buf, &buf_len, NULL, 0) < 0) {
 		perror("sysctl(NET_RT_IFLIST2)");
-		free(buf);
-		return -1;
+		goto err;
 	}
 
-	msg = buf;
-	while(msg < (buf + len)) {
+	msg = iflist_buf;
+	while(msg < (iflist_buf + buf_len)) {
 		struct if_msghdr *msghdr = (struct if_msghdr*)msg;
 		if(msghdr->ifm_type == RTM_IFINFO2) {
 			unsigned long rxtemp, txtemp;
@@ -133,8 +140,13 @@ static int fetch_net(unsigned long *rx_out, unsigned long *tx_out)
 
 	*rx_out = rx;
 	*tx_out = tx;
-	free(buf);
-
 	return 0;
-}
 
+err:
+	if(iflist_buf != NULL) {
+		free(iflist_buf);
+		iflist_buf = NULL;
+	}
+	iflist_buf_len = 0;
+	return -1;
+}
